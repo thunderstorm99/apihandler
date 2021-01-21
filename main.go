@@ -1,98 +1,55 @@
 package apihandler
 
 import (
-	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"net/http"
 )
 
-// CallAPI is the raw function that is being used to call the API
-func CallAPI(url string, method string, body interface{}, resp interface{}) error {
-	// if insecure flag is triggered, don't verify certificates on https
-	// if insecure == true {
-	// 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	// }
+// APICall is a type that holds all necessary info for an API call
+type APICall struct {
+	URL      string
+	Method   string
+	Header   map[string]string
+	Body     interface{}
+	Insecure bool
+}
 
-	log.Println("Calling API with URL:", url)
-	client := &http.Client{}
+// Exec executes the underlying API Call
+func (a APICall) Exec() (i interface{}) {
+	if a.Insecure == true {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
 
-	// setup new request
-	var request *http.Request
-
-	// setup a buffer and load body into it, if we are given a body
-	if body != nil {
-		// convert body to json
-		jsonValue, err := json.Marshal(body)
-		if err != nil {
-			panic(err)
-		}
-
-		request, err = http.NewRequest(method, url, bytes.NewBuffer(jsonValue))
-		if err != nil {
-			// return fmt.Errorf("couldn't create a request with url %s error was %s", url, err)
-			panic(err)
-		}
-		defer request.Body.Close()
-
-	} else {
-		var err error
-		request, err = http.NewRequest(method, url, nil)
-		if err != nil {
-			panic(err)
+	r, err := http.NewRequest(a.Method, a.URL, nil)
+	if err != nil {
+		panic(err)
+	}
+	if a.Header != nil {
+		// add header to request r
+		for key, value := range a.Header {
+			r.Header.Add(key, "Token "+value)
 		}
 	}
 
-	return getBody(client, request, &resp)
-}
-
-func getBody(client *http.Client, request *http.Request, response interface{}) error {
-	r, err := client.Do(request)
+	client := http.Client{}
+	resp, err := client.Do(r)
 	if err != nil {
 		// return fmt.Errorf("couldn't get a response with url %s error was %s", url, err)
 		panic(err)
 	}
 
-	data, err := ioutil.ReadAll(r.Body)
+	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		// return fmt.Errorf("couldn't get a response with url %s error was %s", url, err)
 		panic(err)
 	}
 
-	err = json.Unmarshal(data, &response)
+	err = json.Unmarshal(data, &i)
 	if err != nil {
 		panic(err)
 	}
-	return nil
-}
 
-// GetAPI calls url and writes the answer to the GET request into resp
-func GetAPI(url string, resp interface{}) error {
-	// log.Println("GetAPI...")
-	err := CallAPI(url, http.MethodGet, nil, resp)
-	if err != nil {
-		panic(err)
-	}
-	return nil
-}
-
-// PostAPI calls url and writes the answer to the POST request with body b into resp
-func PostAPI(url string, b interface{}, resp interface{}) error {
-	// log.Println("PostAPI...")
-	err := CallAPI(url, http.MethodPost, b, &resp)
-	if err != nil {
-		panic(err)
-	}
-	return nil
-}
-
-// DeleteAPI calls url and write the answer to the DELETE request into resp
-func DeleteAPI(url string, body interface{}, resp interface{}) error {
-	// log.Println("DeleteAPI...")
-	err := CallAPI(url, http.MethodDelete, body, &resp)
-	if err != nil {
-		panic(err)
-	}
-	return nil
+	return i
 }

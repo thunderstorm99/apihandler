@@ -29,7 +29,7 @@ func (a APICall) Exec(i interface{}) error {
 	if a.Header != nil {
 		// add header to request r
 		for key, value := range a.Header {
-			r.Header.Add(key, "Token "+value)
+			r.Header.Add(key, value)
 		}
 	}
 

@@ -3,6 +3,7 @@ package apihandler
 import (
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 )
@@ -38,6 +39,11 @@ func (a APICall) Exec(i interface{}) error {
 	if err != nil {
 		// return fmt.Errorf("couldn't get a response with url %s error was %s", url, err)
 		return err
+	}
+
+	if resp.StatusCode != 200 {
+		// non standard Status code returns
+		return fmt.Errorf("HTTP statuscode is not 200, error is: %d %s", resp.StatusCode, resp.Status)
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)

@@ -1,6 +1,7 @@
 package apihandler
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -13,7 +14,7 @@ type APICall struct {
 	URL      string
 	Method   string
 	Header   map[string]string
-	Body     interface{}
+	Body     []byte
 	Insecure bool
 }
 
@@ -23,7 +24,8 @@ func (a APICall) Exec(i interface{}) error {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
-	r, err := http.NewRequest(a.Method, a.URL, nil)
+	// create new Request
+	r, err := http.NewRequest(a.Method, a.URL, bytes.NewBuffer(a.Body))
 	if err != nil {
 		return err
 	}

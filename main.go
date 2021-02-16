@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 )
@@ -18,8 +17,8 @@ type APICall struct {
 	Insecure bool
 }
 
-// Exec executes the underlying API Call
-func (a APICall) Exec(i interface{}) error {
+// Exec executes the underlying API Call and returns the resulting statuscode and error if any occurred
+func (a APICall) Exec(i interface{}) (statuscode int, err error) {
 	if a.Insecure == true {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
@@ -27,7 +26,7 @@ func (a APICall) Exec(i interface{}) error {
 	// create new Request
 	r, err := http.NewRequest(a.Method, a.URL, bytes.NewBuffer(a.Body))
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if a.Header != nil {
 		// add header to request r
@@ -40,23 +39,18 @@ func (a APICall) Exec(i interface{}) error {
 	resp, err := client.Do(r)
 	if err != nil {
 		// return fmt.Errorf("couldn't get a response with url %s error was %s", url, err)
-		return err
-	}
-
-	if resp.StatusCode != 200 {
-		// non standard Status code returns
-		return fmt.Errorf("HTTP statuscode is not 200, error is: %d %s", resp.StatusCode, resp.Status)
+		return resp.StatusCode, err
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		// return fmt.Errorf("couldn't get a response with url %s error was %s", url, err)
-		return err
+		return resp.StatusCode, err
 	}
 
 	err = json.Unmarshal(data, &i)
 	if err != nil {
-		return err
+		return resp.StatusCode, err
 	}
-	return nil
+	return resp.StatusCode, nil
 }

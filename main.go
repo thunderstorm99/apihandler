@@ -18,7 +18,7 @@ type APICall struct {
 }
 
 // Exec executes the underlying API Call and returns the resulting statuscode and error if any occurred
-func (a APICall) Exec(i interface{}) (statuscode int, err error) {
+func (a APICall) Exec(i interface{}, client ...http.Client) (statuscode int, err error) {
 	if a.Insecure == true {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
@@ -35,8 +35,7 @@ func (a APICall) Exec(i interface{}) (statuscode int, err error) {
 		}
 	}
 
-	client := http.Client{}
-	resp, err := client.Do(r)
+	resp, err := client[0].Do(r)
 	if err != nil {
 		// return fmt.Errorf("couldn't get a response with url %s error was %s", url, err)
 		return resp.StatusCode, err

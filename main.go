@@ -57,7 +57,7 @@ func (a APICall) Exec(i interface{}) (statuscode int, err error) {
 	resp, err := client.Do(r)
 	if err != nil {
 		// return fmt.Errorf("couldn't get a response with url %s error was %s", url, err)
-		return resp.StatusCode, err
+		return 0, err
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)

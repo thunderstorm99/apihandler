@@ -30,19 +30,20 @@ func httpClient() *http.Client {
 }
 
 // Exec executes the underlying API Call and returns the resulting statuscode and error if any occurred
-func (a APICall) Exec(i interface{}) (statuscode int, err error) {
+func (a APICall) Exec(i interface{}) (statuscode int, errormessage interface{}, err error) {
 	client := httpClient()
 
-	if a.Insecure == true {
+	if a.Insecure {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
 	// create new Request
 	r, err := http.NewRequest(a.Method, a.URL, bytes.NewBuffer(a.Body))
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 
+	// add cookie if needed
 	if a.Cookie != nil {
 		r.AddCookie(a.Cookie)
 	}
@@ -54,22 +55,31 @@ func (a APICall) Exec(i interface{}) (statuscode int, err error) {
 		}
 	}
 
+	// execute request
 	resp, err := client.Do(r)
 	if err != nil {
-		// return fmt.Errorf("couldn't get a response with url %s error was %s", url, err)
-		return 0, err
+		return 0, nil, err
 	}
 
+	// read body to data
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		// return fmt.Errorf("couldn't get a response with url %s error was %s", url, err)
-		return resp.StatusCode, err
+		return resp.StatusCode, nil, err
 	}
 	defer resp.Body.Close()
 
+	// unmarshal data onto i (the given data structure)
 	err = json.Unmarshal(data, &i)
 	if err != nil {
-		return resp.StatusCode, err
+		return resp.StatusCode, nil, err
 	}
-	return resp.StatusCode, nil
+
+	// also unmarshal onto errormessage (in case this is the error message from the server)
+	err = json.Unmarshal(data, &errormessage)
+	if err != nil {
+		return resp.StatusCode, nil, err
+	}
+
+	return resp.StatusCode, errormessage, nil
 }

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/http/cookiejar"
@@ -30,7 +30,7 @@ func httpClient() *http.Client {
 }
 
 // Exec executes the underlying API Call and returns the resulting statuscode and error if any occurred
-func (a APICall) Exec(i interface{}) (statuscode int, errormessage interface{}, err error) {
+func (a APICall) Exec(i any) (statuscode int, errormessage any, err error) {
 	client := httpClient()
 
 	if a.Insecure {
@@ -62,9 +62,8 @@ func (a APICall) Exec(i interface{}) (statuscode int, errormessage interface{}, 
 	}
 
 	// read body to data
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		// return fmt.Errorf("couldn't get a response with url %s error was %s", url, err)
 		return resp.StatusCode, nil, err
 	}
 	defer resp.Body.Close()
